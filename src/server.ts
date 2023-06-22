@@ -45,7 +45,7 @@ interface Game {
 }
 
 const createGame = (): Game => {
-  const engine = Matter.Engine.create();
+  const engine = Matter.Engine.create({gravity: {y: 0, x:0 }});
   const world = engine.world;
 
   const paddleWidth = 10;
@@ -55,7 +55,8 @@ const createGame = (): Game => {
   const player1 = Matter.Bodies.rectangle(paddleWidth, 200, paddleWidth, paddleHeight, paddleOpts);
   const player2 = Matter.Bodies.rectangle(800 - paddleWidth, 200, paddleWidth, paddleHeight, paddleOpts);
 
-  const ball = Matter.Bodies.circle(400, 200, 10);
+  const ball = Matter.Bodies.circle(150, 200, 10);
+  Matter.Body.setPosition(ball, {x: 50, y: 50});
 
   const wallTop = Matter.Bodies.rectangle(400, -10, 800, 20, { isStatic: true });
   const wallBottom = Matter.Bodies.rectangle(400, 410, 800, 20, { isStatic: true });
@@ -74,9 +75,21 @@ const createGame = (): Game => {
 
   return game;
 };
+const getGameState = () => {
+  return {
+    player1: {bounds: game?.player1.bounds, position: game?.player1.position},
+    player2: {bounds: game?.player2.bounds, position: game?.player2.position},
+    ball: {bounds: game?.ball.bounds, position: game?.ball.position},    
+    wallTop: {bounds: game?.wallTop.bounds, position: game?.wallTop.position},
+    wallBottom: {bounds: game?.wallBottom.bounds, position: game?.wallBottom.position},
+  };
+};
 
 const updateGame = () => {
   Matter.Engine.update(game!.engine);
+  const s = getGameState();
+  // console.log({state: s});
+  io.emit('gameState', s);
 };
 
 const resetGame = () => {
@@ -104,7 +117,11 @@ io.on('connection', socket => {
     players.player2 = 2;
     socket.emit('player', 2);
     console.log('Player 2 connected');
+    
     io.emit('start');
+    Matter.Body.setVelocity(game.ball, {x:0, y: 0});
+    
+
   } else {
     socket.emit('message', 'Game in progress. Please try again later.');
   }
@@ -128,14 +145,13 @@ io.on('connection', socket => {
     if (players[socket.id]) {
       const playerNumber = players[socket.id];
       delete players[socket.id];
-
+      
       if (game) {
         Matter.World.remove(game.world, [game.player1, game.player2]);
       }
 
       if (Object.keys(players).length === 0) {
         resetGame();
-        // agones.shutdown();
       }
     }
   });
