@@ -6,13 +6,17 @@ import * as cors from 'cors';
 // import { SDK} from 'agones-sdk';
 
 const app = express();
-app.use(cors());
 const server = http.createServer(app);
-const io = new SocketIOServer(server);
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: "http://localhost:1234",
+    methods: ["GET", "POST"]
+}});
 // const agones = new SDK();
 
 // Set up the static file server
 app.use(express.static('public'));
+app.use(cors());
 
 // Serve the index.html file
 app.get('/', (req, res) => {
