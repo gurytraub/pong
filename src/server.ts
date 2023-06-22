@@ -2,9 +2,11 @@ import * as express  from 'express';
 import * as http from 'http';
 import { Server as SocketIOServer } from "socket.io";
 import * as Matter from 'matter-js'
+import * as cors from 'cors';
 // import { SDK} from 'agones-sdk';
 
 const app = express();
+app.use(cors());
 const server = http.createServer(app);
 const io = new SocketIOServer(server);
 // const agones = new SDK();
