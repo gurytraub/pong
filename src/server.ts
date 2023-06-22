@@ -32,6 +32,7 @@ server.listen(PORT, () => {
 
 // Game logic
 let game: Game | null = null;
+const socketsToPlayers: { [key: string]: number } = {};
 const players: { [key: string]: number } = {};
 
 interface Game {
@@ -144,7 +145,7 @@ const resetGame = () => {
     game = null;
   }
   players.player1 = 0;
-  players.player2 = 0;
+  players.player2 = 0;  
 };
 
 // Socket.io logic
@@ -157,10 +158,12 @@ io.on('connection', socket => {
 
   if (!players.player1) {
     players.player1 = 1;
+    socketsToPlayers[socket.id] = 1;
     socket.emit('player', 1);
     console.log('Player 1 connected');
   } else if (!players.player2) {
     players.player2 = 2;
+    socketsToPlayers[socket.id] = 2;
     socket.emit('player', 2);
     console.log('Player 2 connected');
     
@@ -173,16 +176,19 @@ io.on('connection', socket => {
   }
 
   socket.on('paddleMovement', movement => {
-    if (players[socket.id] === 1) {
+    console.log('paddle movement event', movement);
+    if (socketsToPlayers[socket.id] === 1) {
       Matter.Body.setPosition(game!.player1, {
         x: game!.player1.position.x,
         y: movement.y,
       });
-    } else if (players[socket.id] === 2) {
+      console.log('set position was done');
+    } else if (socketsToPlayers[socket.id] === 2) {
       Matter.Body.setPosition(game!.player2, {
         x: game!.player2.position.x,
         y: movement.y,
       });
+      console.log('set position was done');
     }
   });
 
