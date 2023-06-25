@@ -4,7 +4,8 @@ import { Socket, Server as SocketIOServer } from "socket.io";
 import * as Matter from 'matter-js'
 import * as cors from 'cors';
 
-import Game from './game';
+import Game, { GameMode } from './game';
+
 class GameManager {
     private socketsToPlayers: { [key: string]: number } = {};
     private playersCount: number;
@@ -29,7 +30,7 @@ class GameManager {
         
         this.playersCount = 0;
         this.socketsToPlayers = {};
-        this.game = new Game();
+        this.game = new Game(GameMode.SERVER);
     }
 
     public listen() {
@@ -43,7 +44,7 @@ class GameManager {
     private onConnection(socket: Socket) {
         if (this.playersCount < 2) {
             this.socketsToPlayers[socket.id] = this.playersCount;
-            socket.emit('player', this.playersCount);
+            socket.emit('index', this.playersCount);
             console.log(`Player ${this.playersCount} connected`);
 
             socket.on('disconnect', () => {
@@ -59,9 +60,16 @@ class GameManager {
 
             socket.on('move', movement => {
                 console.log('paddle movement event', movement);
-                this.game.setPlayerVelocity(this.playersCount, movement.v)
+                this.game.movePlayer(this.socketsToPlayers[socket.id], movement.v)
             });
 
+            this.game.on('ball', ball => {
+                this.io.emit('ball', ball);
+            });
+            this.game.on('player', player => {
+                this.io.emit('player', player);
+            });
+            
             this.playersCount++;
 
             if (this.playersCount == 2) {
@@ -75,11 +83,10 @@ class GameManager {
 
     }
     
-
     private resetGame() {
         if (this.game) {
             Matter.World.clear(this.game.World(), true);
-            this.game = new Game();
+            this.game = new Game(GameMode.SERVER);
             this.playersCount = 0;
             this.socketsToPlayers = {};
         }  
