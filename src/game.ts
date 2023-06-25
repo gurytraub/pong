@@ -103,9 +103,8 @@ export default class Game extends EventEmitter {
             velocity = this.BASE_PLAYER_SPEED;
         } else if (velocity < 0) {
             velocity = -this.BASE_PLAYER_SPEED;
-        } else {
-            velocity = 0;
-        }
+        } 
+        console.log({velocity});
         Matter.Body.setVelocity(this.players[player], { x: 0, y: velocity});
 
         this.emit('player', {

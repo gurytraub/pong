@@ -19,7 +19,7 @@ class GameManager {
         this.server = http.createServer(app);
         this.io = new SocketIOServer(this.server, {
           cors: {
-            origin: "http://localhost:1234",
+            origin: "http://localhost:8080",
             methods: ["GET", "POST"]
         }});
         
