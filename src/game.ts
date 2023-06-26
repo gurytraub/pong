@@ -55,13 +55,13 @@ export default class Game extends EventEmitter {
         this.ball = ball;
         this.scores = [0, 0];
 
-        this.wallTop = Matter.Bodies.rectangle(0, 0, 800, 5, { isStatic: true });
+        this.wallTop = Matter.Bodies.rectangle(0, 0, 800, 5, { isStatic: true, isSensor: true });
         this.wallTop.label = 'wallTop';
 
-        this.wallBottom = Matter.Bodies.rectangle(0, 395, 800, 5, { isStatic: true });
+        this.wallBottom = Matter.Bodies.rectangle(0, 395, 800, 5, { isStatic: true, isSensor: true });
         this.wallBottom.label = 'wallBottom';
 
-        Matter.World.add(this.engine.world, [...this.players, ball, this.wallTop, this.wallBottom]);
+        Matter.World.add(this.engine.world, [...this.players, ball, this.wallTop, this.wallBottom, ...this.goals]);
     }
 
     private collisionHandler(event: Matter.IEventCollision<Matter.Engine>) {
@@ -81,8 +81,8 @@ export default class Game extends EventEmitter {
                 }
             }
             for (const wall of [this.wallTop, this.wallBottom]) {
-                if (pair.bodyA === this.ball && pair.bodyB === wall ||
-                    pair.bodyA === wall && pair.bodyB === this.ball
+                if (pair.bodyA === b && pair.bodyB === wall ||
+                    pair.bodyA === wall && pair.bodyB === b
                 ) {
                     // Reverse the ball's velocity in the x-axis
                     this.setBall(b.position.x, b.position.y, b.velocity.x, -b.velocity.y);
@@ -93,8 +93,8 @@ export default class Game extends EventEmitter {
             if (this.mode === GameMode.SERVER) {
                 for (let i = 0; i < 2; i++) {
                     const goal = this.goals[i];
-                    if (pair.bodyA === this.ball && pair.bodyB === goal ||
-                        pair.bodyA === goal && pair.bodyB === this.ball
+                    if (pair.bodyA === b && pair.bodyB === goal ||
+                        pair.bodyA === goal && pair.bodyB === b
                     ) {
                         this.scores[i]++;
                         // Reverse the ball's velocity in the x-axis
