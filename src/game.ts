@@ -11,7 +11,7 @@ export default class Game extends EventEmitter {
     protected ball: Matter.Body;
     protected wallTop: Matter.Body;
     protected wallBottom: Matter.Body;
-    protected interval?: NodeJS.Timer;
+    protected active: boolean = false;
     protected mode: GameMode;
 
     protected lastUpdate: number = 0;
@@ -82,11 +82,12 @@ export default class Game extends EventEmitter {
         }
         Matter.Events.on(this.engine, 'collisionStart', this.collisionHandler.bind(this));
         this.lastUpdate = (new Date()).getTime();
-        this.interval = setInterval(this.gameLoop.bind(this), 1000 / 60);
+        this.active = true;
+        this.gameLoop();
     }
 
     public stop() {
-        clearInterval(this.interval);
+        this.active = false;
     }
 
     public setPlayer(i: number, y: number, vy: number) {
@@ -125,7 +126,15 @@ export default class Game extends EventEmitter {
         });
     }
 
+    protected requestAnimationFrame() {
+        setTimeout(this.gameLoop.bind(this), 1000 / 60);
+    }
+
     protected gameLoop() {
+        if (!this.active) {
+            return;
+        }
+
         // players acceleration
         for (let i = 0; i < 2; i++) {
             const p = this.players[i];
@@ -144,6 +153,7 @@ export default class Game extends EventEmitter {
         Matter.Engine.update(this.engine, delta);
         this.lastUpdate = now;
 
+        this.requestAnimationFrame();
     }
 
     public World() {
