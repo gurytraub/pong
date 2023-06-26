@@ -40,11 +40,15 @@ export default class Game extends EventEmitter {
             Matter.Bodies.rectangle(pd, this.BOARD_VCENTER - (this.PADDLE_HEIGHT * 0.5), pd, ph, paddleOpts),
             Matter.Bodies.rectangle(this.BOARD_WIDTH - pd - 10, this.BOARD_VCENTER - (this.PADDLE_HEIGHT * 0.5), pd, ph, paddleOpts)
         ];
+        this.players[0].label = "player_0";
+        this.players[1].label = "player1_";
 
         this.goals = [
             Matter.Bodies.rectangle(-1, 0, 1, this.BOARD_HEIGHT, { isStatic: true } ),
             Matter.Bodies.rectangle(this.BOARD_WIDTH, 0, 1, this.BOARD_HEIGHT, { isStatic: true } )
         ];
+        this.goals[0].label = 'Goal_0';
+        this.goals[1].label = 'Goal_1';
 
         const ball = Matter.Bodies.rectangle(
             this.BOARD_WIDTH * 0.5 - this.BALL_RADIUS, this.BOARD_HEIGHT * 0.5 - this.BALL_RADIUS,
@@ -67,6 +71,8 @@ export default class Game extends EventEmitter {
     private collisionHandler(event: Matter.IEventCollision<Matter.Engine>) {
         const b = this.ball;
         for (const pair of event.pairs) {
+            console.log('-----COLISSION MASTERSHIP----------');
+            console.log({pair});
             for (const player of this.players) {
                 if (pair.bodyA === b && pair.bodyB === player ||
                     pair.bodyA === player && pair.bodyB === b
