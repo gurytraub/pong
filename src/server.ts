@@ -63,13 +63,10 @@ class GameManager {
                 this.game.movePlayer(this.socketsToPlayers[socket.id], movement.v)
             });
 
-            this.game.on('ball', ball => {
-                this.io.emit('ball', ball);
-            });
-            this.game.on('player', player => {
-                this.io.emit('player', player);
-            });
-            
+            this.game.on('ball', ball => { this.io.emit('ball', ball); });
+            this.game.on('player', player => { this.io.emit('player', player); });
+            this.game.on('goal', goal => { this.io.emit('goal', goal); });
+
             this.playersCount++;
 
             if (this.playersCount == 2) {
