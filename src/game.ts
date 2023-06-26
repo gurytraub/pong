@@ -5,9 +5,9 @@ export enum GameMode { CLIENT, SERVER };
 
 export default class Game extends EventEmitter {
     protected engine: Matter.Engine;
-    protected paddleWidth = 10;
-    protected paddleHeight = 80;
     protected players: Matter.Body[];
+    protected goals: Matter.Body[];
+    protected scores: number[];
     protected ball: Matter.Body;
     protected wallTop: Matter.Body;
     protected wallBottom: Matter.Body;
@@ -19,6 +19,14 @@ export default class Game extends EventEmitter {
     readonly BASE_PLAYER_SPEED = 1;
     readonly MAX_PLAYER_SPEED = 2;
     readonly SPEED_ACCELERATION = 0.05;
+    readonly BOARD_WIDTH = 800;
+    readonly BOARD_HEIGHT = 400;
+    readonly BOARD_HCENTER = this.BOARD_WIDTH * 0.5;
+    readonly BOARD_VCENTER = this.BOARD_HEIGHT * 0.5;
+    readonly PADDLE_WIDTH = 10;
+    readonly PADDLE_HEIGHT = 80;
+    readonly BALL_RADIUS = 5;
+    readonly BALL_SPEED = 2;
 
     constructor(mode: GameMode) {
         super();
@@ -27,17 +35,25 @@ export default class Game extends EventEmitter {
         this.engine = Matter.Engine.create({ gravity: { y: 0, x: 0 } });
         const paddleOpts = { isStatic: false, isSensor: true };
 
-        const [pd, ph] = [this.paddleWidth, this.paddleHeight];
+        const [pd, ph] = [this.PADDLE_WIDTH, this.PADDLE_HEIGHT];
         this.players = [
-            Matter.Bodies.rectangle(pd, 160, pd, ph, paddleOpts),
-            Matter.Bodies.rectangle(800 - pd - 10, 160, pd, ph, paddleOpts)
+            Matter.Bodies.rectangle(pd, this.BOARD_VCENTER - (this.PADDLE_HEIGHT * 0.5), pd, ph, paddleOpts),
+            Matter.Bodies.rectangle(this.BOARD_WIDTH - pd - 10, this.BOARD_VCENTER - (this.PADDLE_HEIGHT * 0.5), pd, ph, paddleOpts)
         ];
 
-        const ball = Matter.Bodies.rectangle(395, 195, 10, 10, { isSensor: true });
+        this.goals = [
+            Matter.Bodies.rectangle(-1, 0, 1, this.BOARD_HEIGHT, { isStatic: true } ),
+            Matter.Bodies.rectangle(this.BOARD_WIDTH, 0, 1, this.BOARD_HEIGHT, { isStatic: true } )
+        ];
+
+        const ball = Matter.Bodies.rectangle(
+            this.BOARD_WIDTH * 0.5 - this.BALL_RADIUS, this.BOARD_HEIGHT * 0.5 - this.BALL_RADIUS,
+            this.BALL_RADIUS * 2, this.BALL_RADIUS * 2, { isSensor: true });
         ball.label = 'ball';
         ball.friction = 0;
         ball.frictionAir = 0;
         this.ball = ball;
+        this.scores = [0, 0];
 
         this.wallTop = Matter.Bodies.rectangle(0, 0, 800, 5, { isStatic: true });
         this.wallTop.label = 'wallTop';
@@ -73,12 +89,28 @@ export default class Game extends EventEmitter {
                     break;
                 }
             }
+
+            if (this.mode === GameMode.SERVER) {
+                for (let i = 0; i < 2; i++) {
+                    const goal = this.goals[i];
+                    if (pair.bodyA === this.ball && pair.bodyB === goal ||
+                        pair.bodyA === goal && pair.bodyB === this.ball
+                    ) {
+                        this.scores[i]++;
+                        // Reverse the ball's velocity in the x-axis
+                        this.emit('goal', { player: i, scores: this.scores });
+                        this.resetBall();
+                        break;
+                    }
+                }
+            }
         }
     }
 
     public start(reset: boolean = true) {
         if (this.mode === GameMode.SERVER && reset) {
-            this.setBall(30, 30, 1, 0.2);
+            this.resetBall();
+            this.scores = [0, 0];
         }
         Matter.Events.on(this.engine, 'collisionStart', this.collisionHandler.bind(this));
         this.lastUpdate = (new Date()).getTime();
@@ -124,6 +156,19 @@ export default class Game extends EventEmitter {
             vx: this.ball.velocity.x,
             vy: this.ball.velocity.y
         });
+    }
+
+    public resetBall() {
+        let vx = Math.random() + 0.8;
+        let vy = Math.sqrt(this.BALL_SPEED * this.BALL_SPEED - vx * vx)
+        if (Math.random() > 0.5) {
+            vx = -vx;
+        }
+        if (Math.random() > 0.5) {
+            vy = -vy;
+        }
+
+        this.setBall(this.BOARD_HCENTER, this.BOARD_VCENTER, vx, vy);
     }
 
     protected requestAnimationFrame() {
