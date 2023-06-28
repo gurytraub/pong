@@ -1,6 +1,6 @@
 import * as express  from 'express';
 import * as http from 'http';
-import { Socket, Server as SocketIOServer } from "socket.io";
+import { Socket, Server as SocketIOServer } from 'socket.io';
 import * as Matter from 'matter-js'
 import * as cors from 'cors';
 
@@ -20,8 +20,8 @@ class GameManager {
         this.server = http.createServer(app);
         this.io = new SocketIOServer(this.server, {
           cors: {
-            origin: "http://localhost:8080",
-            methods: ["GET", "POST"]
+            origin: '*',
+            methods: ['GET', 'POST']
         }});
         
         // Set up the static file server
