@@ -64,7 +64,7 @@ class GameManager {
 
             this.game.on('ball', ball => { this.io.emit('ball', ball); });
             this.game.on('player', player => { this.io.emit('player', player); });
-            this.game.on('goal', goal => { this.io.emit('goal', goal); });
+            this.game.on('score', score => { this.io.emit('score', score); });
 
             this.playersCount++;
 
