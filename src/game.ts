@@ -13,9 +13,9 @@ export default class Game extends EventEmitter {
 
     protected lastUpdate: number = 0;
 
-    readonly BASE_PLAYER_SPEED = 1;
-    readonly MAX_PLAYER_SPEED = 2;
-    readonly SPEED_ACCELERATION = 0.05;
+    readonly BASE_PLAYER_SPEED = 2;
+    readonly MAX_PLAYER_SPEED = 4;
+    readonly SPEED_ACCELERATION = 0.1;
     readonly BOARD_WIDTH = 800;
     readonly BOARD_HEIGHT = 400;
     readonly BOARD_HCENTER = this.BOARD_WIDTH * 0.5;
@@ -23,7 +23,7 @@ export default class Game extends EventEmitter {
     readonly PADDLE_WIDTH = 10;
     readonly PADDLE_HEIGHT = 80;
     readonly BALL_RADIUS = 5;
-    readonly BALL_SPEED = 2;
+    readonly BALL_SPEED = 4;
 
     constructor(mode: GameMode) {
         super();
@@ -55,18 +55,22 @@ export default class Game extends EventEmitter {
     private collisionHandler(event: Matter.IEventCollision<Matter.Engine>) {
         const b = this.ball;
         for (const pair of event.pairs) {
+            // for the left (first) player set the target ball velocity to be positive
+            let vx = Math.abs(b.velocity.x);
             for (const player of this.players) {
                 if (pair.bodyA === b && pair.bodyB === player ||
                     pair.bodyA === player && pair.bodyB === b
                 ) {
                     if (this.mode === GameMode.SERVER) {
                         // Reverse the ball's velocity in the x-axis
-                        this.setBall(b.position.x, b.position.y, -b.velocity.x, b.velocity.y);
+                        this.setBall(b.position.x, b.position.y, vx, b.velocity.y);
                     } else {
                         this.setBall(b.position.x, b.position.y, 0, 0);
                     }
                     break;
                 }
+                // for the right (second) player set the target ball velocity to be positive
+                vx *= -1;
             }
         }
     }
@@ -123,7 +127,7 @@ export default class Game extends EventEmitter {
     }
 
     public resetBall() {
-        let vx = Math.random() + 0.8;
+        let vx = Math.random() + this.BALL_SPEED * 0.5;
         let vy = Math.sqrt(this.BALL_SPEED * this.BALL_SPEED - vx * vx)
         if (Math.random() > 0.5) {
             vx = -vx;
@@ -146,8 +150,12 @@ export default class Game extends EventEmitter {
         if (this.mode === GameMode.SERVER) {
             // ball collision
             const bp = this.ball.position;
-            if (bp.y < 0 || bp.y > this.BOARD_HEIGHT - this.BALL_RADIUS * 2) {
-                this.setBall(bp.x, bp.y, this.ball.velocity.x, -this.ball.velocity.y);
+            const vy = Math.abs(this.ball.velocity.y);
+            const maxY = this.BOARD_HEIGHT - this.BALL_RADIUS * 2;
+            if (bp.y < 0) {
+                this.setBall(bp.x, 0, this.ball.velocity.x, vy);
+            } else if (bp.y > maxY) {
+                this.setBall(bp.x, maxY, this.ball.velocity.x, -vy);
             }
             if (bp.x < 0) {
                 this.scores[0]++;

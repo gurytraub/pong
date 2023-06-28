@@ -59,7 +59,6 @@ class GameManager {
             });
 
             socket.on('move', movement => {
-                console.log('paddle movement event', movement);
                 this.game.movePlayer(this.socketsToPlayers[socket.id], movement.v)
             });
 
