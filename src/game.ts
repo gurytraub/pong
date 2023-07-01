@@ -4,15 +4,6 @@ import * as Matter from 'matter-js';
 export enum GameMode { CLIENT, SERVER };
 
 export default class Game extends EventEmitter {
-    protected engine: Matter.Engine;
-    protected players: Matter.Body[];
-    protected scores: number[];
-    protected ball: Matter.Body;
-    protected active: boolean = false;
-    protected mode: GameMode;
-
-    protected lastUpdate: number = 0;
-
     readonly BASE_PLAYER_SPEED = 2;
     readonly MAX_PLAYER_SPEED = 4;
     readonly SPEED_ACCELERATION = 0.1;
@@ -25,6 +16,17 @@ export default class Game extends EventEmitter {
     readonly BALL_RADIUS = 5;
     readonly BALL_SPEED = 4;
 
+    protected engine: Matter.Engine;
+    protected players: Matter.Body[];
+    protected scores: number[];
+    protected ball: Matter.Body;
+    protected active: boolean = false;
+    protected mode: GameMode;
+
+    protected ballSpeed: number = this.BALL_SPEED;
+    protected lastUpdate: number = 0;
+
+
     constructor(mode: GameMode) {
         super();
 
@@ -33,20 +35,25 @@ export default class Game extends EventEmitter {
         const paddleOpts = { isStatic: false, isSensor: true };
 
         const [pd, ph] = [this.PADDLE_WIDTH, this.PADDLE_HEIGHT];
+        const py = this.BOARD_VCENTER - (this.PADDLE_HEIGHT * 0.5);
         this.players = [
-            Matter.Bodies.rectangle(pd, this.BOARD_VCENTER - (this.PADDLE_HEIGHT * 0.5), pd, ph, paddleOpts),
-            Matter.Bodies.rectangle(this.BOARD_WIDTH - pd - 10, this.BOARD_VCENTER - (this.PADDLE_HEIGHT * 0.5), pd, ph, paddleOpts)
+            Matter.Bodies.rectangle(pd, py, pd, ph, paddleOpts),
+            Matter.Bodies.rectangle(this.BOARD_WIDTH - (2 * pd), py, pd, ph, paddleOpts)
         ];
-        this.players[0].label = "player0";
-        this.players[1].label = "player1";
+        for (let i = 0; i < this.players.length; i++) {
+            this.players[i].label = `player${i}`;
+            this.setPlayer(i, py, 0);
+        }
 
         const ball = Matter.Bodies.rectangle(
             this.BOARD_WIDTH * 0.5 - this.BALL_RADIUS, this.BOARD_HEIGHT * 0.5 - this.BALL_RADIUS,
-            this.BALL_RADIUS * 2, this.BALL_RADIUS * 2, { isSensor: true });
+            this.BALL_RADIUS * 2, this.BALL_RADIUS * 2, { isSensor: true }
+        );
         ball.label = 'ball';
         ball.friction = 0;
         ball.frictionAir = 0;
         this.ball = ball;
+        this.setBall(ball.position.x, ball.position.y, 0, 0);
         this.scores = [0, 0];
 
         Matter.World.add(this.engine.world, [...this.players, ball]);
@@ -56,21 +63,25 @@ export default class Game extends EventEmitter {
         const b = this.ball;
         for (const pair of event.pairs) {
             // for the left (first) player set the target ball velocity to be positive
-            let vx = Math.abs(b.velocity.x);
+            let direction = 1;
             for (const player of this.players) {
                 if (pair.bodyA === b && pair.bodyB === player ||
                     pair.bodyA === player && pair.bodyB === b
                 ) {
+                    const max = this.ballSpeed * 0.85;
+                    const vv = this.ballSpeed * this.ballSpeed;
+                    const vy = Math.max(-max, Math.min(player.velocity.y * 0.5 + b.velocity.y, max));
+                    const vx = Math.sqrt(vv - vy * vy) * direction;
                     if (this.mode === GameMode.SERVER) {
                         // Reverse the ball's velocity in the x-axis
-                        this.setBall(b.position.x, b.position.y, vx, b.velocity.y);
-                    } else {
+                        this.setBall(b.position.x, b.position.y, vx, vy);
+                    } else if (b.velocity.x * vx < 0) { // only stop ball if opposite direction
                         this.setBall(b.position.x, b.position.y, 0, 0);
                     }
                     break;
                 }
                 // for the right (second) player set the target ball velocity to be positive
-                vx *= -1;
+                direction = -1;
             }
         }
     }
@@ -127,8 +138,8 @@ export default class Game extends EventEmitter {
     }
 
     public resetBall() {
-        let vx = Math.random() + this.BALL_SPEED * 0.5;
-        let vy = Math.sqrt(this.BALL_SPEED * this.BALL_SPEED - vx * vx)
+        let vx = Math.random() + this.ballSpeed * 0.5;
+        let vy = Math.sqrt(this.ballSpeed * this.ballSpeed - vx * vx)
         if (Math.random() > 0.5) {
             vx = -vx;
         }
