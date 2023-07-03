@@ -1,7 +1,6 @@
 import * as express  from 'express';
 import * as http from 'http';
 import { Socket, Server as SocketIOServer } from 'socket.io';
-import * as Matter from 'matter-js'
 import * as cors from 'cors';
 
 import Game, { GameMode } from './game';
@@ -62,7 +61,7 @@ class GameManager {
                 this.game.movePlayer(this.socketsToPlayers[socket.id], movement.v)
             });
 
-            this.game.on('ball', ball => { this.io.emit('ball', ball); });
+            this.game.on('ball', ball => { console.log('setting ball:', {ball}); this.io.emit('ball', ball); });
             this.game.on('player', player => { this.io.emit('player', player); });
             this.game.on('score', score => { this.io.emit('score', score); });
 
@@ -81,7 +80,6 @@ class GameManager {
     
     private resetGame() {
         if (this.game) {
-            Matter.World.clear(this.game.World(), true);
             this.game = new Game(GameMode.SERVER);
             this.playersCount = 0;
             this.socketsToPlayers = {};
