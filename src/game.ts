@@ -91,6 +91,10 @@ export default class Game extends EventEmitter {
     }
 
     public setPlayer(i: number, y: number, vy: number) {
+        if (y < 0 || y + this.PADDLE_HEIGHT > this.BOARD_HEIGHT) {
+            return;
+        }
+        
         const p = this.players[i];
         if (vy > 0) {
             vy = this.BASE_PLAYER_SPEED;
