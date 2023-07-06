@@ -3,7 +3,7 @@ import * as http from 'http';
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import * as cors from 'cors';
 
-import Game, { GameMode } from './game';
+import Game from './game';
 
 class GameManager {
     private socketsToPlayers: { [key: string]: number } = {};
@@ -29,7 +29,7 @@ class GameManager {
         
         this.playersCount = 0;
         this.socketsToPlayers = {};
-        this.game = new Game(GameMode.SERVER);
+        this.game = new Game();
     }
 
     public listen() {
@@ -80,7 +80,7 @@ class GameManager {
     
     private resetGame() {
         if (this.game) {
-            this.game = new Game(GameMode.SERVER);
+            this.game = new Game();
             this.playersCount = 0;
             this.socketsToPlayers = {};
         }  

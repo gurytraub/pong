@@ -1,7 +1,5 @@
 import { EventEmitter } from 'stream';
 
-export enum GameMode { CLIENT, SERVER };
-
 interface Vector2D {
     x: number;
     y: number;
@@ -38,22 +36,19 @@ export default class Game extends EventEmitter {
     readonly PADDLE_WIDTH = 10;
     readonly PADDLE_HEIGHT = 80;
     readonly BALL_RADIUS = 5;
-    readonly BALL_SPEED = 150;
+    readonly BASE_BALL_SPEED = 150;
 
     protected players: Body[];
     protected scores: number[];
     protected ball: Body;
-    protected active: boolean = false;
-    protected mode: GameMode;
 
-    protected ballSpeed: number = this.BALL_SPEED;
+    protected ballSpeed: number = this.BASE_BALL_SPEED;
     protected lastUpdate: number = 0;
+    protected loopInterval?: NodeJS.Timeout;
 
-
-    constructor(mode: GameMode) {
+    constructor() {
         super();
 
-        this.mode = mode;
         const paddleOpts = { isStatic: false, isSensor: true };
 
         const [pd, ph] = [this.PADDLE_WIDTH, this.PADDLE_HEIGHT];
@@ -77,17 +72,19 @@ export default class Game extends EventEmitter {
     }
 
     public start(reset: boolean = true) {
-        if (this.mode === GameMode.SERVER && reset) {
+        if (reset) {
             this.resetBall();
             this.scores = [0, 0];
         }
         this.lastUpdate = (new Date()).getTime();
-        this.active = true;
-        this.gameLoop();
+        this.loopInterval = setInterval(this.gameLoop.bind(this), 1000 / 120);
     }
 
     public stop() {
-        this.active = false;
+        if (this.loopInterval) {
+            clearInterval(this.loopInterval);
+            this.loopInterval = undefined;
+        }
     }
 
     public setPlayer(i: number, y: number, vy: number) {
@@ -142,15 +139,7 @@ export default class Game extends EventEmitter {
         this.setBall(this.BOARD_HCENTER, this.BOARD_VCENTER, vx, vy);
     }
 
-    protected requestAnimationFrame() {
-        setTimeout(this.gameLoop.bind(this), 1000 / 60);
-    }
-
     protected gameLoop() {
-        if (!this.active) {
-            return;
-        }
-
         // update ball position
         const now = (new Date()).getTime();
         const dt = now - this.lastUpdate;
@@ -202,23 +191,11 @@ export default class Game extends EventEmitter {
                 const vv = this.ballSpeed * this.ballSpeed;
                 const vy = Math.max(-max, Math.min(p.velocity.y * 0.5 + b.velocity.y, max));
                 const vx = Math.sqrt(vv - vy * vy) * (i === 0 ? 1 : -1); // set x velocity AND direction by player index
-                if (this.mode === GameMode.SERVER) {
-                    // Reverse the ball's velocity in the x-axis
-                    this.setBall(b.position.x, b.position.y, vx, vy);
-                } else if (b.velocity.x * vx < 0) { // only stop ball if opposite direction
-                    this.setBall(b.position.x, b.position.y, 0, 0);
-                }
+                this.setBall(b.position.x, b.position.y, vx, vy);
                 this.emit('hit', { i, x: b.position.x, y: b.position.y });
                 break;
             }
         }
-
-        for (let i = 0; i < 2; i++) {
-            const p = this.players[i];
-
-        }
-
-        this.requestAnimationFrame();
     }
 
 }
